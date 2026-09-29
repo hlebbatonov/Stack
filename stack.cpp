@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_CAPACITY 10e7
-
+#define MAX_CAPACITY 1000000
+#define NAME(x) #x
 typedef double stack_elem;
 
 struct stack_t
@@ -13,9 +13,21 @@ struct stack_t
     size_t capacity;//размер массива
 };
 
+enum Errors
+{
+    OK = 1,
+    ERR_NULL_POINTER,
+    ERR_ZERO_LENGTH,
+    ERR_LENGTH_TOO_BIG,
+    ERR_CALLOC_ERROR,
+    ERR_STACK_EXISTS
+};
+
 int StackPush(stack_t* stack, stack_elem elem);
+int StackPop(stack_t* stack, stack_elem* elem);
 int StackInit(stack_t* stack, size_t capacity);
 int StackRemove(stack_t* stack);
+void StackDump(stack_t* stack);
 
 int main()
 {
@@ -29,7 +41,12 @@ int main()
     err = StackPush(&stk1, elem1);
     if (err != 1) return 1;
 
-    for (int i = 0; i < stk1.size; i++) {printf("<%g>", stk1.data[i]);}
+    StackPush(&stk1, 3.19);
+    StackPush(&stk1, 1.1111111);
+    err = StackPop(&stk1, &elem1);
+
+    printf("%g\n", elem1);
+    for (size_t i = 0; i < stk1.size; i++) {printf("%g ", stk1.data[i]);}
 
     err = StackRemove(&stk1);
     if (err != 1) return 1;
@@ -38,33 +55,49 @@ int main()
 
 int StackPush(stack_t* stack, stack_elem elem)
 {
-    if (stack->size < stack->capacity)
+    if (stack->size > stack->capacity)
     {
-        stack->data[stack->size] = elem;
-        stack->size++;
+        stack->capacity *= 2;
+        stack->data = (stack_elem*)calloc(stack->capacity, sizeof(stack_elem));
+        if (stack->data == NULL) return ERR_CALLOC_ERROR;
     }
-    else return -1;
+    stack->data[stack->size++] = elem;
+    return 1;
+}
 
+int StackPop(stack_t* stack, stack_elem* elem)
+{
+    if (elem == NULL) return ERR_NULL_POINTER;
+    if (stack->size <= 0) return ERR_ZERO_LENGTH;
+
+    if (stack->size <= stack->capacity / 2)
+    {
+        stack->capacity /= 2;
+        stack->data = (stack_elem*)calloc(stack->capacity, sizeof(stack_elem));
+        if (stack->data == NULL) return ERR_CALLOC_ERROR;
+    }
+    *elem = stack->data[--stack->size];
     return 1;
 }
 
 int StackInit(stack_t* stack, size_t capacity)
 {
-    if (stack == NULL) return -1;
-    if (capacity == 0) return -2;
-    if (capacity > MAX_CAPACITY) return -3;
+    if (stack == NULL) return ERR_NULL_POINTER;
+    if (stack->data != NULL || stack->capacity != NULL || stack->size != NULL) return ERR_STACK_EXISTS;
+    if (capacity == 0) return ERR_ZERO_LENGTH;
+    if (capacity > MAX_CAPACITY) return ERR_LENGTH_TOO_BIG;
 
     stack->capacity = capacity;
     stack->size = 0;
     stack->data = (stack_elem*)calloc(capacity, sizeof(stack_elem));
-    if (stack->data == NULL) return -4;
+    if (stack->data == NULL) return ERR_CALLOC_ERROR;
 
     return 1;
 }
 
 int StackRemove(stack_t* stack)
 {
-    if (stack == NULL) return -1;
+    if (stack == NULL) return ERR_NULL_POINTER;
     free(stack->data);
     stack->data = NULL;
     stack->capacity = NULL;
@@ -72,3 +105,7 @@ int StackRemove(stack_t* stack)
     return 1;
 }
 
+void StackDump(stack_t* stack)
+{
+    printf("stack_t \"%s\"[%p] created at %s:%d", NAME(*stack));
+}
