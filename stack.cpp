@@ -81,7 +81,7 @@ Errors StackCopy(stack_t* stack_dst, stack_t* stack_src)
 
 Errors StackInit(stack_t* stack, size_t capacity)
 {
-    if (stack == NULL) return ERR_NULL_POINTER;
+    if (stack == NULL) return ERR_STACK_NULL_POINTER;
     if (stack->data != NULL || stack->capacity != 0 || stack->size != 0) return ERR_STACK_EXISTS;
     if (capacity == 0) return ERR_ZERO_LENGTH;
 
@@ -188,14 +188,14 @@ Errors StackVerify(stack_t *stack)
     if (stack->stack_canary_right != STACK_CANARY_RIGHT) return ERR_DEAD_RIGHT_CANARY;
 
     //Verify hashes
-    uint64_t calc_data_hash = CalcHashDJB2(stack->data, (stack->capacity + NUM_OF_CANARIES) * sizeof(stack_elem));
-    if (calc_data_hash != stack->data_hash) return ERR_DATA_HASH_CHANGED;
-
     uint64_t curr_stack_hash = stack->stack_hash;
     stack->stack_hash = 0;
     uint64_t calc_stack_hash = CalcHashDJB2(stack, sizeof(*stack));
     stack->stack_hash = curr_stack_hash;
     if (calc_stack_hash != curr_stack_hash) return ERR_STACK_HASH_CHANGED;
+
+    uint64_t calc_data_hash = CalcHashDJB2(stack->data, (stack->capacity + NUM_OF_CANARIES) * sizeof(stack_elem));
+    if (calc_data_hash != stack->data_hash) return ERR_DATA_HASH_CHANGED;
 
     //Verify data canaries
     if (stack->data[0] != CANARY_LEFT) return ERR_DEAD_LEFT_CANARY;
@@ -220,7 +220,7 @@ void StackDumpFunc(stack_t* stack, var_info info)
     else printf("Printing stack_t \"%s\"[%p] CALLED at %s:%u\n", info.var_name, stack, info.file, info.line);
     printf("%s = %zu, %s = %zu\n", NAME(stack->size), stack->size, NAME(stack->capacity), stack->capacity);
     printf("\"%s\"[%p]\n{\n", NAME(stack->data), stack->data);
-    if (stack->data != NULL)
+    if (stack->data != NULL/*  */)
     {
         for (unsigned int i = 0; i < stack->capacity + NUM_OF_CANARIES; i++)
         {
